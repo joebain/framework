@@ -1,5 +1,6 @@
 <?php namespace Illuminate\Database\Eloquent\Relations;
 
+use Log;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -19,6 +20,8 @@ abstract class HasOneOrMany extends Relation {
 	 * @var string
 	 */
 	protected $localKey;
+
+    private $rememberModel = false;
 
 	/**
 	 * Create a new has many relationship instance.
@@ -59,7 +62,30 @@ abstract class HasOneOrMany extends Relation {
 	public function addEagerConstraints(array $models)
 	{
 		$this->query->whereIn($this->foreignKey, $this->getKeys($models, $this->localKey));
+
+        if ($this->rememberModel) {
+            $cacheTags = [];
+            foreach ($models as $model) {
+                $cacheTags []= $this->related->getTable()."/".$model->getTag();
+            }
+//            Log::debug("remembering query with tags ".var_export($cacheTags, true));
+            $this->query->cacheTags($cacheTags)->rememberForever();
+        }
 	}
+
+    /**
+     *  Remember the query. If we know the foreign key now then we can set the cachetags right away,
+     *  otherwise we set the remember model to be true so that later the cache tag can be set.
+     */
+    public function remember() {
+        if (!is_null($this->getParentKey())) {
+            $cacheTag = $this->related->getTable()."/".$this->parent->getTable()."#".$this->getParentKey();
+//            Log::debug("remembering query with tag ".$cacheTag);
+            $this->query->cacheTags($cacheTag)->rememberForever();
+        }
+        $this->rememberModel = true;
+        return $this;
+    }
 
 	/**
 	 * Match the eagerly loaded results to their single parents.

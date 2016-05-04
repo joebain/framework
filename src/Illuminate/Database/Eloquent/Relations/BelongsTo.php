@@ -1,5 +1,6 @@
 <?php namespace Illuminate\Database\Eloquent\Relations;
 
+use Log;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Expression;
@@ -27,6 +28,9 @@ class BelongsTo extends Relation {
 	 * @var string
 	 */
 	protected $relation;
+
+
+    private $rememberModel = false;
 
 	/**
 	 * Create a new belongs to relationship instance.
@@ -104,8 +108,28 @@ class BelongsTo extends Relation {
 		// our eagerly loading query so it returns the proper models from execution.
 		$key = $this->related->getTable().'.'.$this->otherKey;
 
-		$this->query->whereIn($key, $this->getEagerModelKeys($models));
+        $modelsKeys = $this->getEagerModelKeys($models);
+        $this->query->whereIn($key, $modelsKeys);
+        if ($this->rememberModel) {
+            $cacheTags = [];
+            foreach ($modelsKeys as $modelKey) {
+                $cacheTags []= $this->related->getTable()."#".$modelKey;
+            }
+//            Log::debug("remembering query with tags ".var_export($cacheTags, true));
+            $this->query->cacheTags($cacheTags)->rememberForever();
+        }
 	}
+
+    public function remember()
+    {
+        $this->rememberModel = true;
+        if (!is_null($this->parent->{$this->foreignKey})) {
+            $cacheTag = $this->related->getTable()."#".$this->parent->{$this->foreignKey};
+//            Log::debug("remembering query with tag ".$cacheTag);
+            $this->query->cacheTags($cacheTag)->rememberForever();
+        }
+        return $this;
+    }
 
 	/**
 	 * Gather the keys from an array of related models.
