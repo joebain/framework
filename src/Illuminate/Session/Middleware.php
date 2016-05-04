@@ -78,8 +78,12 @@ class Middleware implements HttpKernelInterface {
 		{
 			$this->closeSession($session);
 
-			$this->addCookieToResponse($response, $session);
-		}
+            $authToken = $request->headers->get('X-Auth-Token');
+            // only add the session cookie if the requester is not using an auth token header
+            if (is_null($authToken)) {
+                $this->addCookieToResponse($response, $session);
+            }
+        }
 
 		return $response;
 	}
@@ -247,11 +251,16 @@ class Middleware implements HttpKernelInterface {
 	 */
 	public function getSession(Request $request)
 	{
-		$session = $this->manager->driver();
+        $session = $this->manager->driver();
 
-		$session->setId($request->cookies->get($session->getName()));
+        $authToken = $request->headers->get('X-Auth-Token');
+        if (!is_null($authToken)) {
+            $session->setId($authToken);
+        } else {
+            $session->setId($request->cookies->get($session->getName()));
+        }
 
-		return $session;
+        return $session;
 	}
 
 }

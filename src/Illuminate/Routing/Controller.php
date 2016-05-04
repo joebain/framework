@@ -1,5 +1,6 @@
 <?php namespace Illuminate\Routing;
 
+use Log;
 use Closure;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 

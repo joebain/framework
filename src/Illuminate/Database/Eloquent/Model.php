@@ -2176,7 +2176,7 @@ abstract class Model implements ArrayAccess, ArrayableInterface, JsonableInterfa
 	 */
 	public function toJson($options = 0)
 	{
-		return json_encode($this->toArray(), $options);
+        return json_encode($this->toArray(), $options);
 	}
 
 	/**
